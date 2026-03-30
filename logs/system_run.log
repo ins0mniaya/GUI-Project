@@ -1,0 +1,5 @@
+2026-03-28 16:43:15,782 - [can.interfaces.socketcan.socketcan] - [ERROR] - socket.CMSG_SPACE not available on this platform
+2026-03-28 16:43:15,783 - [driver] - [ERROR] - CAN总线连接失败: [WinError 10047] 使用了与请求的协议不兼容的地址。
+2026-03-28 16:43:15,784 - [driver] - [ERROR] - BMS CAN总线连接失败: [WinError 10047] 使用了与请求的协议不兼容的地址。
+2026-03-28 16:43:15,784 - [ui.main_window] - [INFO] - 正在连接 CAN 总线: channel=can0, bitrate=500K
+2026-03-28 16:43:15,785 - [ui.main_window] - [INFO] - 连接状态已更新: 连接失败
