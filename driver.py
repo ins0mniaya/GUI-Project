@@ -192,7 +192,6 @@ class CANEMSDriver(QObject):
         "get_EMS_Running_Data": "EMS_Running_Data",
         "get_EMS_Realtime_Data": "EMS_Realtime_Data",
         # 待添加
-        # "get_EMS_VarParam_Data": "EMS_VarParam_Data",
     }
     
     def _resolve_command_frame(self, command_name):
@@ -210,11 +209,9 @@ class CANEMSDriver(QObject):
 
     def send_command(self, command_name, command_biz_data=None):
         """发送EMS请求命令。
-        
         Args:
             command_name: 命令名称，必须在 COMMAND_TO_DATA_TYPE 中定义
             command_biz_data: 业务数据，若提供则优先级高于配置中的 tx_data
-        
         Returns:
             bool: 发送成功返回 True，否则返回 False
         """
@@ -301,8 +298,8 @@ class CANEMSDriver(QObject):
             logger.error(f"EMS发送命令失败: {e}")
             return False
 
-    def clear_stale_waiting(self, command_name: str, source: str = "unknown") -> bool:
-        """若该命令应答已超时则释放等待状态。"""
+    def clear_timeout_state(self, command_name: str, source: str = "unknown") -> bool:
+        """若该命令应答已超时则清除超时状态。"""
         if command_name not in self._cmd_state:
             return False
         with self._state_lock:
@@ -340,7 +337,7 @@ class CANEMSDriver(QObject):
             return True
 
     def _dispatch_data(self, data):
-        """根据业务数据长度分发解析器"""
+        """根据业务数据的长度（17还是47还是其他）分发解析器"""
         # 收到完整数据时清除对应命令的等待状态
         with self._state_lock:
             self._last_dispatch_time = time.time()
@@ -394,9 +391,10 @@ class CANEMSDriver(QObject):
             )
 
     def _parse_EMS_Running_Data(self, data: bytes) -> dict:
-        """根据 config 的 map 配置解析 EMS 运行参数。
+        """根据 config 的 map 的配置
+           解析 EMS_Running_Data。
         
-        系统时间从配置读取，其他未解析的字节保存为 extra_raw。
+        系统时间从配置读取，其他未解析的字节保存为 extra_raw，待添加。
         """
         try:
             if len(data) < 8:
@@ -409,7 +407,7 @@ class CANEMSDriver(QObject):
             cfg = EMS_PROTOCOL_CONFIG.get("EMS_Running_Data", {})
             field_map = cfg.get("map", {})  # 字段映射配置
             
-            # 根据 map 配置解析 system_time 字段
+            # 根据 map 配置解析 system_time （系统时间）
             if "system_time" in field_map:
                 year = struct.unpack(">H", data[0:2])[0]
                 month = data[2]
@@ -448,9 +446,9 @@ class CANEMSDriver(QObject):
                 result["extra_raw"] = data[8:].hex()
 
             logger.info(
-                "EMS_Running_Data parsed: system_time=%s, raw=%s",
+                "EMS_Running_Data 被解析: system_time（系统时间）=%s, raw=%s",
                 result.get("system_time"),
-                data.hex(),
+                data.hex()
             )
 
             return result
@@ -560,29 +558,29 @@ class CANEMSDriver(QObject):
 
 # ======================== Device Manager ========================
 class DeviceManager(QObject):
-    status_changed = Signal(bool, str, str)
-
+    status_changed = Signal(bool, str, str)  # 信号参数：是否连接, 设备角色, 状态描述
     def __init__(self):
         super().__init__()
-
         # 去节点化缓存：按设备角色组织数据
         self.data_cache = {
             "ems": {
                 "EMS_Realtime_Data": {},
                 "EMS_Running_Data": {},
+                # 待添加
                 "last_seen": 0.0,
             },
         }
 
         # 初始化 EMS 驱动
-        self.pcs_driver = CANEMSDriver(CAN_CONFIG)
-        self.pcs_driver.data_received.connect(self._on_data_arrived)
+        self.can_ems_driver = CANEMSDriver(CAN_CONFIG)
+        self.can_ems_driver.data_received.connect(self._on_data_arrived)
 
-        # EMS 轮询定时器（Qt 定时器放在管理层）
+        # EMS_Realtime_Data 轮询定时器（Qt 定时器放在管理层）
         # self.realtime_poll_timer = QTimer(self)
         # self.realtime_poll_timer.setInterval(200)
         # self.realtime_poll_timer.timeout.connect(self.get_EMS_Realtime_Data)
 
+        # EMS_Running_Data 轮询定时器
         self.slow_poll_timer = QTimer(self)
         self.slow_poll_timer.setInterval(1000)
         self.slow_poll_timer.timeout.connect(self._poll_slow_params)
@@ -603,9 +601,9 @@ class DeviceManager(QObject):
             bustype = "virtual" if "vbus" in channel or "test" in channel else "socketcan"
             config = {"channel": channel, "bustype": bustype, "bitrate": bitrate}
             # 配置并启动 EMS 驱动
-            self.pcs_driver.config = config
+            self.can_ems_driver.config = config
 
-            pcs_connected = self.pcs_driver.open_bus()
+            pcs_connected = self.can_ems_driver.open_bus()
             
             if pcs_connected:
                 self.is_connected = True
@@ -632,37 +630,43 @@ class DeviceManager(QObject):
 
     def send_ems_command(self, command_name, biz_data=None):
         """透传EMS命令发送接口，供UI层按业务动作触发请求。"""
-        return self.pcs_driver.send_command(command_name, biz_data)
+        return self.can_ems_driver.send_command(command_name, biz_data)
 
     def get_EMS_Running_Data(self):
         return self.send_ems_command("get_EMS_Running_Data")
 
     # def get_EMS_Realtime_Data(self):
-    #     self.pcs_driver.clear_stale_waiting("get_EMS_Realtime_Data", "realtime_poll")
-    #     if self.pcs_driver._cmd_state["get_EMS_Realtime_Data"]["waiting"]:
-    #         return False
     #     return self.send_ems_command("get_EMS_Realtime_Data")
 
-    def _poll_slow_params(self):
-        """慢速轮询：轮询读取运行参数。"""
+    def _poll_quick_params(self):
+        """快速轮询：轮询读取实时参数等。"""
         if not self.is_connected:
             return
 
-        self.pcs_driver.clear_stale_waiting("get_EMS_Running_Data", "slow_poll")
-        if not self.pcs_driver._cmd_state["get_EMS_Running_Data"]["waiting"]:
+        self.can_ems_driver.clear_timeout_state("get_EMS_Realtime_Data", "quick_poll")
+        if not self.can_ems_driver._cmd_state["get_EMS_Realtime_Data"]["waiting"]:
+            self.get_EMS_Realtime_Data()
+
+    def _poll_slow_params(self):
+        """慢速轮询：轮询读取运行参数等。"""
+        if not self.is_connected:
+            return
+
+        self.can_ems_driver.clear_timeout_state("get_EMS_Running_Data", "slow_poll")
+        if not self.can_ems_driver._cmd_state["get_EMS_Running_Data"]["waiting"]:
             self.get_EMS_Running_Data()
 
     def _start_ems_polling(self):
         """启动 EMS 轮询定时器"""
-        # if not self.realtime_poll_timer.isActive():
-        #     self.realtime_poll_timer.start()
+        # if not self._poll_quick_params.isActive():
+        #     self._poll_quick_params.start()
         if not self.slow_poll_timer.isActive():
             self.slow_poll_timer.start()
 
     def _stop_ems_polling(self):
         """停止 EMS 轮询定时器"""
-        # if self.realtime_poll_timer.isActive():
-        #     self.realtime_poll_timer.stop()
+        # if self._poll_quick_params.isActive():
+        #     self._poll_quick_params.stop()
         if self.slow_poll_timer.isActive():
             self.slow_poll_timer.stop()
 
@@ -670,7 +674,7 @@ class DeviceManager(QObject):
         self.is_connected = False
         self._stop_timeout_check()
         self._stop_ems_polling()
-        self.pcs_driver.close()
+        self.can_ems_driver.close()
         self.data_cache["ems"]["last_seen"] = 0.0
         self.status_changed.emit(False, "", "已断开")
     

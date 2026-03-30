@@ -52,11 +52,7 @@
 ├─ README.md
 ├─ logs/                        # 日志输出目录
 │  └─ system_run.log
-├─ model_prediction/            # 预测模型与数据
-│  ├─ data1.xlsx
-│  ├─ predict_v3.py
-│  ├─ predictions_v3.csv
-│  └─ solar_power_lstm_model_v3.pth
+├─ model_prediction/            # 预测模型
 └─ ui/
    ├─ __init__.py
    ├─ login_window.py           # 登录窗口

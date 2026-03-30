@@ -31,8 +31,8 @@ class MainWindow(QWidget):
         if self.ui_signaller is not None:
             self.ui_signaller.log_signal.connect(self._on_ui_log_received)
         
-        # 直接监听源信号（方案 A）
-        self.device_manager.pcs_driver.data_received.connect(self._on_ems_data_update)
+        # 直接监听源信号
+        self.device_manager.can_ems_driver.data_received.connect(self._on_ems_data_update)
         
         # 本地缓存：维护 EMS 数据
         self._local_cache = {
@@ -118,16 +118,70 @@ class MainWindow(QWidget):
 
         self.btn_connect = QPushButton("连接总线")
         self.btn_connect.setMinimumWidth(100)
-        self.btn_connect.clicked.connect(self.on_btn_connect_clicked)
+        self.btn_connect.clicked.connect(self.toggle_can_connection)
         layout_bottom.addWidget(self.btn_connect)
 
         # 最终组装
         self.layout_main_outer.addWidget(self.tabs_main)
         self.layout_main_outer.addWidget(self.widget_bottom_bar)
-        # 注意: 不使用 QMetaObject.connectSlotsByName，因为所有信号已通过 clicked.connect() 明确连接
+
+# ================================================================================================================================
+# ================================================================================================================================
+# ================================================================================================================================
+# ================================================================================================================================
 
     # ================================================================
-    # 槽函数：数据刷新、连接按钮、状态更新
+    # 槽函数：底部控制栏
+    # ================================================================
+
+    def toggle_can_connection(self):
+        """连接按钮点击事件：连接/断开 CAN 总线"""
+        if self.device_manager.is_connected:
+            # 已连接，执行断开操作
+            self.device_manager.disconnect_can()
+            self.update_timer.stop()
+            self.btn_connect.setText("连接总线")
+            self.label_status_indicator.setText("未连接")
+            self.label_status_indicator.setStyleSheet("font-weight: bold; color: #D92D20;")
+            logger.info("CAN 总线已断开连接")
+        else:
+            # 未连接，执行连接操作
+            # 从 CAN_CONFIG 中获取通道和波特率（这里假设使用默认配置）
+            channel = CAN_CONFIG.get("channel", "can0")
+            bitrate = CAN_CONFIG.get("bitrate", 500000)
+            bitrate_str = f"{bitrate // 1000}K"
+            
+            # 调用设备管理器的连接方法
+            self.device_manager.connect_can(channel, bitrate_str)
+            
+            # 启动 UI 更新定时器
+            if not self.update_timer.isActive():
+                self.update_timer.start()
+            
+            self.btn_connect.setText("断开连接")
+            logger.info(f"正在连接 CAN 总线: channel={channel}, bitrate={bitrate_str}")
+
+    def update_connection_ui(self, is_connected: bool, channel: str, status_msg: str):
+        """更新连接状态 UI（由 device_manager.status_changed 信号触发）"""
+        try:
+            if is_connected:
+                self.label_status_indicator.setText("已连接")
+                self.label_status_indicator.setStyleSheet("font-weight: bold; color: #059669;")
+                self.btn_connect.setText("断开连接")
+                if not self.update_timer.isActive():
+                    self.update_timer.start()
+                logger.info(f"连接状态已更新: {status_msg} ({channel})")
+            else:
+                self.label_status_indicator.setText("未连接")
+                self.label_status_indicator.setStyleSheet("font-weight: bold; color: #D92D20;")
+                self.btn_connect.setText("连接总线")
+                self.update_timer.stop()
+                logger.info(f"连接状态已更新: {status_msg}")
+        except Exception as e:
+            logger.error(f"更新连接UI异常: {e}", exc_info=True)
+
+    # ================================================================
+    # 槽函数：Tab1
     # ================================================================
 
     def _on_ems_data_update(self, data_type: str, data_dict: dict):
@@ -269,51 +323,7 @@ class MainWindow(QWidget):
                 self.tab_monitor.host.label_sys_time_val.setText("00:00:00")
 
 
-    def on_btn_connect_clicked(self):
-        """连接按钮点击事件：连接/断开 CAN 总线"""
-        if self.device_manager.is_connected:
-            # 已连接，执行断开操作
-            self.device_manager.disconnect_can()
-            self.update_timer.stop()
-            self.btn_connect.setText("连接总线")
-            self.label_status_indicator.setText("未连接")
-            self.label_status_indicator.setStyleSheet("font-weight: bold; color: #D92D20;")
-            logger.info("CAN 总线已断开连接")
-        else:
-            # 未连接，执行连接操作
-            # 从 CAN_CONFIG 中获取通道和波特率（这里假设使用默认配置）
-            channel = CAN_CONFIG.get("channel", "can0")
-            bitrate = CAN_CONFIG.get("bitrate", 500000)
-            bitrate_str = f"{bitrate // 1000}K"
-            
-            # 调用设备管理器的连接方法
-            self.device_manager.connect_can(channel, bitrate_str)
-            
-            # 启动 UI 更新定时器
-            if not self.update_timer.isActive():
-                self.update_timer.start()
-            
-            self.btn_connect.setText("断开连接")
-            logger.info(f"正在连接 CAN 总线: channel={channel}, bitrate={bitrate_str}")
-
-    def update_connection_ui(self, is_connected: bool, channel: str, status_msg: str):
-        """更新连接状态 UI（由 device_manager.status_changed 信号触发）"""
-        try:
-            if is_connected:
-                self.label_status_indicator.setText("已连接")
-                self.label_status_indicator.setStyleSheet("font-weight: bold; color: #059669;")
-                self.btn_connect.setText("断开连接")
-                if not self.update_timer.isActive():
-                    self.update_timer.start()
-                logger.info(f"连接状态已更新: {status_msg} ({channel})")
-            else:
-                self.label_status_indicator.setText("未连接")
-                self.label_status_indicator.setStyleSheet("font-weight: bold; color: #D92D20;")
-                self.btn_connect.setText("连接总线")
-                self.update_timer.stop()
-                logger.info(f"连接状态已更新: {status_msg}")
-        except Exception as e:
-            logger.error(f"更新连接UI异常: {e}", exc_info=True)
+    
 
     def _get_run_state_text(self, run_state: int) -> str:
         """已停用：仅保留系统时间与连接状态的实时显示链路。"""
@@ -326,7 +336,7 @@ class MainWindow(QWidget):
         pass
 
     # ================================================================
-    # 槽函数：EMS参数管理（参数设置Tab）
+    # 槽函数：Tab2
     # ================================================================
 
     def _on_read_current_params(self):
@@ -345,7 +355,7 @@ class MainWindow(QWidget):
         pass
 
     # ================================================================
-    # 槽函数：光伏/负荷预测（预测Tab）
+    # 槽函数：Tab3
     # ================================================================
 
     def _on_start_pv_predict(self):
