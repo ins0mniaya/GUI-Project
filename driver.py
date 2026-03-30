@@ -1,4 +1,4 @@
-# device_core.py
+# driver.py
 import can
 import copy
 import sys
