@@ -9,7 +9,8 @@ from PySide6.QtWidgets import (
     QPushButton, QSpinBox, QTabWidget, QTextEdit, QVBoxLayout, QWidget
 )
 from config import CAN_CONFIG
-from ui.widgets import EMSMonitorTab, EMSParamTab, AboutTab
+from model_prediction.predict_v3 import run_prediction
+from ui.widgets import EMSMonitorTab, EMSParamTab, PredictionTab, AboutTab
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,9 @@ class MainWindow(QWidget):
 
         self.tab_param = EMSParamTab(self)
         self.tabs_main.addTab(self.tab_param, "EMS参数设置")
+
+        self.tab_pred = PredictionTab(self)
+        self.tabs_main.addTab(self.tab_pred, "光伏/负荷预测")
 
         self.tab_about = AboutTab()
         self.tabs_main.addTab(self.tab_about, "关于我们")
@@ -340,4 +344,23 @@ class MainWindow(QWidget):
         # 注释停用：参数重置槽函数。
         pass
 
+    # ================================================================
+    # 槽函数：光伏/负荷预测（预测Tab）
+    # ================================================================
+
+    def _on_start_pv_predict(self):
+        """已停用：仅保留系统时间与连接状态的实时显示链路。"""
+        # 注释停用：光伏预测槽函数。
+        pass
+
+    def _on_start_load_predict(self):
+        """已停用：仅保留系统时间与连接状态的实时显示链路。"""
+        # 注释停用：负荷预测槽函数。
+        pass
+
+    def _on_clear_pred_log(self):
+        """已停用：仅保留系统时间与连接状态的实时显示链路。"""
+        # 注释停用：预测日志清理槽函数。
+        pass
+    
     

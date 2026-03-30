@@ -1,7 +1,7 @@
-# EMS 图形化监控系统（PySide6）
+# EMS 图形化监控与预测系统（PySide6）
 
 > 出品单位：合肥工业大学 | 交通能源协同控制实验室  
-> 产品定位：储能与能源场景的 EMS 监控与参数配置产品
+> 产品定位：面向储能与能源场景的 EMS 监控与预测软件产品
 
 ---
 
@@ -10,6 +10,7 @@
 
 - EMS 运行状态监控
 - EMS 参数配置与下发
+- 预测模型调用与结果展示
 - 统一日志管理与故障排查支持
 
 本产品由**合肥工业大学 | 交通能源协同控制实验室**研发，适用于本地联调、现场调试与演示环境。
@@ -31,7 +32,11 @@
 - 参数读取、编辑、下发
 - 配置项状态反馈与异常提示
 
-### 2.4 About
+### 2.4 预测模块（Prediction）
+- 调用 `model_prediction` 下模型进行预测
+- 展示预测结果和历史数据文件（CSV）
+
+### 2.5 About
 - 项目说明/版本信息展示
 
 ---
@@ -47,6 +52,11 @@
 ├─ README.md
 ├─ logs/                        # 日志输出目录
 │  └─ system_run.log
+├─ model_prediction/            # 预测模型与数据
+│  ├─ data1.xlsx
+│  ├─ predict_v3.py
+│  ├─ predictions_v3.csv
+│  └─ solar_power_lstm_model_v3.pth
 └─ ui/
    ├─ __init__.py
    ├─ login_window.py           # 登录窗口
@@ -55,7 +65,8 @@
       ├─ __init__.py
       ├─ about_tab.py
       ├─ ems_monitor_tab.py
-      └─ ems_param_tab.py
+      ├─ ems_param_tab.py
+      └─ prediction_tab.py
 ```
 
 ---
@@ -65,8 +76,10 @@
 - Python 3.9+（建议 3.10）
 - Windows（当前开发环境）
 - 依赖库（至少包含）：
-   - PySide6
-   - python-can（CAN 通讯）
+  - PySide6
+  - torch（用于预测模型推理）
+  - pandas（用于 CSV 处理）
+  - 以及项目实际使用到的通信/工具依赖
 
 ---
 
@@ -82,7 +95,7 @@ pip install -r requirements.txt
 如果暂未维护依赖文件，可按实际缺失逐步安装：
 
 ```bash
-pip install PySide6 python-can
+pip install PySide6 torch pandas
 ```
 
 ### 5.2 启动项目
@@ -114,10 +127,14 @@ python main.py
 1. 启动报模块缺失  
    - 执行依赖安装，确认 Python 环境与解释器一致。
 
-2. 通讯无数据  
+2. 预测失败/模型加载失败  
+   - 检查 `model_prediction/solar_power_lstm_model_v3.pth` 是否存在；
+   - 确认 `torch` 版本与模型兼容。
+
+3. 通讯无数据  
    - 检查 CAN 配置、设备连接状态、协议映射配置是否一致。
 
-3. UI 有值但不刷新  
+4. UI 有值但不刷新  
    - 检查主窗口定时器、槽函数连接是否有效；
    - 关注 `ui/main_window.py` 中对应 tab 的信号绑定逻辑。
 
@@ -135,7 +152,7 @@ python main.py
 ## 9. 后续优化建议
 
 1. 增加 `requirements.txt` / `pyproject.toml`，统一依赖管理  
-2. 为核心通讯与 UI 刷新流程补充单元测试  
+2. 为核心服务与预测流程补充单元测试  
 3. 将主窗口槽函数进一步模块化（按 Tab 拆分 mixin/controller）  
 4. 增加异常场景下的用户可视化提示与重试机制  
 
@@ -148,5 +165,5 @@ python main.py
 
 ## 11. 出品与版权声明
 - 出品单位：合肥工业大学 | 交通能源协同控制实验室
-- 产品名称：EMS 图形化监控系统（PySide6）
+- 产品名称：EMS 图形化监控与预测系统（PySide6）
 - 本仓库中的代码、文档与界面方案用于教学科研及项目开发，请在授权范围内使用。
