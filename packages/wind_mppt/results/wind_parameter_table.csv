@@ -1,0 +1,39 @@
+﻿category,name,symbol,value,unit,note
+Wind resource,Reference wind height,H_ref,10,m,10 m wind speed is corrected to hub height
+Wind resource,Hub height,H_hub,30,m,Small wind turbine tower height assumption
+Wind resource,Wind shear exponent,alpha,0.14,-,Power-law height correction
+Wind resource,Turbulence intensity,TI,0.03,-,Mild synthetic turbulence added to 15-minute mean wind
+Wind resource,Turbulence time constant,tau_w,20,s,First-order wind fluctuation correlation time
+Wind resource,Turbulence max deviation,delta_w_max,0.12,-,Maximum synthetic wind deviation ratio when turbulence is enabled
+Wind turbine,Blade radius,R,1.35,m,Swept area determines captured wind power
+Wind turbine,Swept area,A,5.72555,m2,A = pi R^2
+Wind turbine,Rated power,P_rated,2000,W,2 kW wind branch matched to 370 V bus
+Wind turbine,Cut-in speed,v_ci,2.5,m/s,No generation below this wind speed
+Wind turbine,Rated speed,v_rated,11,m/s,Pitch limiting starts near rated condition
+Wind turbine,Cut-out speed,v_co,25,m/s,Generation is stopped above this wind speed
+Wind turbine,Actual aero capture efficiency,eta_aero,0.94,-,"Practical blade/turbulence correction applied to actual P_aero, not to ideal MPP reference"
+Aerodynamics,Dynamic optimum enabled,dynamic_opt,1,-,1 means lambda/Cp/k are updated during runtime
+Aerodynamics,Nominal tip-speed ratio,lambda_nom,6.33,-,Fallback value when dynamic optimum is disabled
+Aerodynamics,Nominal power coefficient,Cp_nom,0.438,-,Fallback value when dynamic optimum is disabled
+Aerodynamics,Lambda search minimum,lambda_min,0.5,-,Runtime Cp peak search lower bound
+Aerodynamics,Lambda search maximum,lambda_max,14,-,Runtime Cp peak search upper bound
+Aerodynamics,Yaw misalignment,gamma,3,deg,Applied as cos(gamma)^3 loss
+Mechanics,Rotor inertia,J,0.85,kg*m2,Rotor speed dynamic state
+Mechanics,Viscous friction,B,0.012,N*m*s/rad,Mechanical damping torque
+Pitch,Maximum pitch angle,beta_max,25,deg,Above-rated aerodynamic limiting
+Pitch,Pitch rate limit,d_beta_max,8,deg/s,Actuator slew-rate constraint
+MPPT,Nominal torque coefficient,k_nom,0.0149001,N*m/(rad/s)^2,Runtime k_opt is adjusted by air density and pitch when dynamic optimum is enabled
+MPPT,Torque rate limit,d_T_max,300,N*m/s,Generator torque actuator limit
+MPPT,Startup torque coefficient,Cq_start,0.04,-,Low-speed aerodynamic starting torque before Region-2 MPPT engages
+PMSG,Pole pairs,p,4,-,Electrical speed = p * omega
+PMSG,Flux linkage,psi_f,0.55,Wb,Sets torque and voltage constants
+PMSG,Phase resistance,R_s,0.08,ohm,Copper loss term
+PMSG,Current time constant,tau_i,0.025,s,Electrical current lag
+Rectifier,Diode voltage drop,V_d,1.2,V,Rectifier conduction loss
+Rectifier,Equivalent resistance,R_rec,0.02,ohm,Current-dependent rectifier loss
+Boost,DC bus target,V_bus,370,V,Common bus shared with PV branch
+Boost,Inductance,L,0.012,H,Average-state inductor current
+Boost,Capacitance,C,0.035,F,DC bus capacitor state
+Boost,Load resistance,R_load,68.45,ohm,Equivalent rated load
+Boost,Inductor resistance,R_L,0.08,ohm,Converter conduction loss
+Boost,Duty rate limit,d_D_max,4,1/s,Duty-cycle slew-rate constraint

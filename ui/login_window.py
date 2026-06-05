@@ -15,7 +15,7 @@ class LoginWindow(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("EMS 上位机系统 - 登录")
+        self.setWindowTitle("EMS 上位机系统V1.0 - 登录")
         self.setFixedSize(600, 420)
         self.setWindowModality(Qt.ApplicationModal)
 
